@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title> NAIL STUDIO | 報價試算</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+
+        body { background-color: #1a1c1e; color: #e2e2e2; font-family: sans-serif; min-height: 100vh; padding-bottom: 180px !important; }
+
+        .dark-card { background: rgba(45, 48, 51, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; margin-bottom: 20px; padding: 24px; }
+
+        .section-title { text-transform: uppercase; letter-spacing: 0.15em; color: #a0a0a0; font-size: 11px; font-weight: bold; margin-bottom: 20px; border-left: 3px solid #666; padding-left: 10px; }
+
+        .toggle-btn { flex: 1; padding: 14px 8px; border-radius: 12px; text-align: center; transition: all 0.3s; cursor: pointer; font-size: 12px; background: #36393e; color: #999; border: 1px solid transparent; }
+
+        .toggle-btn.active { background: #ffffff; color: #1a1c1e; font-weight: bold; }
+
+        .counter-group { background: #36393e; border-radius: 10px; display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
+
+        .counter-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+
+        select { background: #36393e; border: 1px solid #4a4d52; border-radius: 12px; padding: 12px; width: 100%; color: #fff; outline: none; appearance: none; }
+
+        select:disabled { opacity: 0.3; }
+
+        
+
+        /* 懸浮總計欄：避開 Tiiny.host 廣告 */
+
+        .total-bar { 
+
+            position: fixed; 
+
+            bottom: 20px; /* 向上推開避開紫色橫條 */
+
+            left: 15px; 
+
+            right: 15px; 
+
+            background: rgba(30, 32, 35, 0.95); 
+
+            padding: 16px 24px; 
+
+            backdrop-filter: blur(20px); 
+
+            display: flex; 
+
+            justify-content: space-between; 
+
+            align-items: center; 
+
+            border: 1px solid rgba(255,255,255,0.1);
+
+            border-radius: 20px;
+
+            z-index: 100; 
+
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+        }
+
+        .copy-btn { background: #ffffff; color: #1a1c1e; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: bold; }
+
+        .quick-btn { background: #4a4d52; color: #ccc; font-size: 10px; padding: 4px 8px; border-radius: 6px; }
+
+        .checkbox-disabled { opacity: 0.3; cursor: not-allowed; }
+
+    </style>
+
+</head>
+
+<body class="p-5">
+
+    <header class="text-center py-8">
+
+        <h1 class="text-2xl font-bold tracking-[0.4em] text-white">PRICE CALCULATOR</h1>
+
+    </header>
+
+
+
+    <div class="dark-card">
+
+        <p class="section-title">Base Style</p>
+
+        <div class="grid grid-cols-2 gap-3 mb-6">
+
+            <div class="base-opt toggle-btn active" data-name="不指定低調" onclick="setBase(1000, this, true)">不指定低調 $1000</div>
+
+            <div class="base-opt toggle-btn" data-name="不指定華麗" onclick="setBase(1300, this, true)">不指定華麗 $1300</div>
+
+            <div class="base-opt toggle-btn" data-name="半指定款式" onclick="setBase(1200, this, false)">半指定款式 $1200</div>
+
+            <div class="base-opt toggle-btn" data-name="來圖/設計" onclick="setBase(1000, this, false)">來圖/設計 $1000起 依複雜程度計價</div>
+
+        </div>
+
+        <label id="extra-color-label" class="flex items-center text-sm text-gray-400 px-2 cursor-pointer transition-opacity">
+
+            <input type="checkbox" id="extra-color" onchange="calculate()" class="mr-3 w-5 h-5"> 
+
+            指定色系 +$100
+
+        </label>
+
+    </div>
+
+
+
+    <div class="dark-card">
+
+        <p class="section-title">Removal Service</p>
+
+        <select id="removal" onchange="calculate()">
+
+            <option value="0" disabled selected>—— 請選擇卸甲服務 ——</option>
+
+            <option value="0" data-name="不需要卸甲">不需要卸甲 $0</option>
+
+            <option value="200" data-name="本店卸甲續作">本店卸甲續作 $200</option>
+
+            <option value="300" data-name="他店卸甲續作">他店卸甲續作 $300</option>
+
+            <option value="400" data-name="純卸(本店)" class="pure-removal">本店純卸不續作 $400</option>
+
+            <option value="500" data-name="純卸(他店)" class="pure-removal">他店純卸不續作 $500</option>
+
+            <option value="50" data-name="卸指甲油">卸指甲油 $50</option>
+
+        </select>
+
+        <label class="flex items-center mt-5 text-sm text-gray-400 px-2 cursor-pointer">
+
+            <input type="checkbox" id="big-diamond" onchange="calculate()" class="mr-3 w-5 h-5"> 卸大鑽/大飾品/超厚/全延 另+$100
+        
+
+        </label>
+
+    </div>
+
+
+
+    <div class="dark-card">
+
+        <p class="section-title">Add-ons</p>
+
+        <div id="addon-list" class="space-y-6"></div>
+
+        <div class="mt-8 pt-6 border-t border-white/5">
+
+            <label class="flex justify-between items-center text-sm font-medium cursor-pointer">
+
+                <span>加厚 / 超長甲 (全手)</span>
+
+                <div class="flex items-center">
+
+                    <span class="mr-4 text-gray-500">+$200</span>
+
+                    <input type="checkbox" id="extra-thick" onchange="calculate()" class="w-6 h-6">
+
+                </div>
+
+            </label>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="total-bar">
+
+        <div>
+
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total</p>
+
+            <p class="text-3xl font-bold text-white">$<span id="total-price">1000</span></p>
+
+        </div>
+
+        <button class="copy-btn active:scale-95 transition-transform" onclick="copyResult()">複製報價</button>
+
+    </div>
+
+
+
+    <script>
+
+        const addonsConfig = [
+
+            { id: 'ext-old', name: '延甲續用', price: 30, emoji: '💅' },
+
+            { id: 'ext-new', name: '延甲', price: 100, emoji: '📏' },
+
+            { id: 'decor', name: '飾品', price: 30, emoji: '✨' }, 
+
+            { id: 'repair', name: '斷甲修復', price: 50, emoji: '🩹' },
+
+            { id: 'fix', name: '鷹勾/飛甲校正', price: 50, emoji: '🛠️' }
+
+        ];
+
+
+
+        let basePrice = 1000;
+
+        let selectedBaseName = "不指定低調";
+
+        let addonCounts = {};
+
+
+
+        const listDiv = document.getElementById('addon-list');
+
+        addonsConfig.forEach(item => {
+
+            addonCounts[item.id] = 0;
+
+            listDiv.innerHTML += `
+
+                <div class="flex justify-between items-center">
+
+                    <div class="flex flex-col">
+
+                        <span class="text-sm text-gray-300">${item.emoji} ${item.name}</span>
+
+                        <span class="text-[10px] text-gray-600">$${item.price}/指</span>
+
+                    </div>
+
+                    <div class="flex items-center gap-2">
+
+                        <button onclick="setFullHand('${item.id}')" class="quick-btn">10指</button>
+
+                        <div class="counter-group">
+
+                            <button class="counter-btn" onclick="updateCount('${item.id}', -1)">−</button>
+
+                            <span id="cnt-${item.id}" class="w-8 text-center text-sm font-bold text-white">0</span>
+
+                            <button class="counter-btn" onclick="updateCount('${item.id}', 1)">+</button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        });
+
+
+
+        function setBase(price, el, canExtra) {
+
+            basePrice = price;
+
+            selectedBaseName = el.getAttribute('data-name');
+
+            const removalSelect = document.getElementById('removal');
+
+            const pureOpts = document.querySelectorAll('.pure-removal');
+
+            if(removalSelect.value === "400" || removalSelect.value === "500") removalSelect.value = "0";
+
+            pureOpts.forEach(opt => opt.disabled = true);
+
+            document.querySelectorAll('.base-opt').forEach(btn => btn.classList.remove('active'));
+
+            el.classList.add('active');
+
+            const extraCheck = document.getElementById('extra-color');
+
+            const extraLabel = document.getElementById('extra-color-label');
+
+            if (!canExtra) {
+
+                extraCheck.checked = false; extraCheck.disabled = true;
+
+                extraLabel.classList.add('checkbox-disabled');
+
+            } else {
+
+                extraCheck.disabled = false; extraLabel.classList.remove('checkbox-disabled');
+
+            }
+
+            calculate();
+
+        }
+
+
+
+        function updateCount(id, delta) {
+
+            addonCounts[id] = Math.min(10, Math.max(0, addonCounts[id] + delta));
+
+            document.getElementById(`cnt-${id}`).innerText = addonCounts[id];
+
+            calculate();
+
+        }
+
+
+
+        function setFullHand(id) {
+
+            addonCounts[id] = 10;
+
+            document.getElementById(`cnt-${id}`).innerText = 10;
+
+            calculate();
+
+        }
+
+
+
+        function calculate() {
+
+            let total = basePrice;
+
+            if (document.getElementById('extra-color').checked) total += 100;
+
+            total += parseInt(document.getElementById('removal').value || 0);
+
+            if (document.getElementById('big-diamond').checked) total += 100;
+
+            if (document.getElementById('extra-thick').checked) total += 200;
+
+            addonsConfig.forEach(item => { total += addonCounts[item.id] * item.price; });
+
+            document.getElementById('total-price').innerText = total;
+
+        }
+
+
+
+        function copyResult() {
+
+            const total = document.getElementById('total-price').innerText;
+
+            const removalText = document.getElementById('removal').options[document.getElementById('removal').selectedIndex].getAttribute('data-name') || "未選擇";
+
+            let details = `【RENE NAIL 報價試算】\n款式：${selectedBaseName}\n卸甲：${removalText}`;
+
+            if(document.getElementById('extra-color').checked) details += `\n+ 指定色系`;
+
+            if(document.getElementById('big-diamond').checked) details += `\n+ 卸大鑽`;
+
+            if(document.getElementById('extra-thick').checked) details += `\n+ 全手加厚/超長甲`;
+
+            addonsConfig.forEach(item => {
+
+                if(addonCounts[item.id] > 0) details += `\n+ ${item.name} x${addonCounts[item.id]}指`;
+
+            });
+
+            details += `\n------------------\n總計預估：$${total}\n*實際金額依現場溝通為準`;
+
+            navigator.clipboard.writeText(details).then(() => alert('報價明細已複製，快貼給美甲師吧！'));
+
+        }
+
+    </script>
+
+</body>
+
+</html>
