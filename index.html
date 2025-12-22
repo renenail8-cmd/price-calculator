@@ -15,6 +15,9 @@
         .counter-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; cursor: pointer; }
         select { background: #36393e; border: 1px solid #4a4d52; border-radius: 12px; padding: 12px; width: 100%; color: #fff; outline: none; appearance: none; }
         
+        /* 鎖定狀態的樣式 */
+        .lock-disabled { opacity: 0.2 !important; pointer-events: none !important; cursor: not-allowed !important; }
+        
         .total-bar { 
             position: fixed; bottom: 20px; left: 15px; right: 15px; 
             background: rgba(30, 32, 35, 0.95); padding: 16px 24px; 
@@ -24,7 +27,6 @@
         }
         .copy-btn { background: #ffffff; color: #1a1c1e; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: bold; }
         .quick-btn { background: #4a4d52; color: #ccc; font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
-        .checkbox-disabled { opacity: 0.3; cursor: not-allowed; }
     </style>
 </head>
 <body class="p-5">
@@ -52,8 +54,8 @@
             <option value="0" data-name="不需要卸甲">不需要卸甲 $0</option>
             <option value="200" data-name="本店卸甲續作">本店卸甲續作 $200</option>
             <option value="300" data-name="他店卸甲續作">他店卸甲續作 $300</option>
-            <option value="400" data-name="純卸(本店)" class="pure-removal">本店純卸不續作 $400</option>
-            <option value="500" data-name="純卸(他店)" class="pure-removal">他店純卸不續作 $500</option>
+            <option value="400" data-name="純卸(本店)" class="pure-opt">本店純卸不續作 $400</option>
+            <option value="500" data-name="純卸(他店)" class="pure-opt">他店純卸不續作 $500</option>
             <option value="50" data-name="卸指甲油">卸指甲油 $50</option>
         </select>
         <label class="flex items-center mt-5 text-sm text-gray-400 px-2 cursor-pointer">
@@ -100,7 +102,7 @@
         addonsConfig.forEach(item => {
             addonCounts[item.id] = 0;
             listDiv.innerHTML += `
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center" id="row-${item.id}">
                     <div class="flex flex-col">
                         <span class="text-sm text-gray-300">${item.emoji} ${item.name}</span>
                         <span class="text-[10px] text-gray-600">$${item.price}/指</span>
@@ -127,14 +129,33 @@
                 el.classList.add('active');
                 basePrice = price;
                 selectedBaseName = el.getAttribute('data-name');
-                
-                // 核心邏輯：選了款式，飾品就歸 0
-                addonCounts['decor'] = 0;
-                const decorCountLabel = document.getElementById('cnt-decor');
-                if(decorCountLabel) decorCountLabel.innerText = 0;
             }
 
-            // 更新指定色系可用狀態
+            // 1. 處理飾品鎖定 (選了 Base Style 就不能點飾品)
+            const decorRow = document.getElementById('row-decor');
+            if (basePrice > 0) {
+                addonCounts['decor'] = 0; // 歸零
+                document.getElementById('cnt-decor').innerText = 0;
+                decorRow.classList.add('lock-disabled');
+            } else {
+                decorRow.classList.remove('lock-disabled');
+            }
+
+            // 2. 處理卸甲選項鎖定 (選了 Base Style 就不能選純卸)
+            const removalSelect = document.getElementById('removal');
+            const pureOptions = document.querySelectorAll('.pure-opt');
+            
+            if (basePrice > 0) {
+                // 如果當前正選著純卸，強迫跳回「不需要卸甲」
+                if (removalSelect.value === "400" || removalSelect.value === "500") {
+                    removalSelect.value = "0";
+                }
+                pureOptions.forEach(opt => opt.disabled = true);
+            } else {
+                pureOptions.forEach(opt => opt.disabled = false);
+            }
+
+            // 指定色系狀態
             const extraCheck = document.getElementById('extra-color');
             const extraLabel = document.getElementById('extra-color-label');
             if (!canExtra || basePrice === 0) {
@@ -170,8 +191,8 @@
 
         function copyResult() {
             const total = document.getElementById('total-price').innerText;
-            const removalSelect = document.getElementById('removal');
-            const removalText = removalSelect.options[removalSelect.selectedIndex].getAttribute('data-name') || "未選擇";
+            const rSel = document.getElementById('removal');
+            const removalText = rSel.options[rSel.selectedIndex].getAttribute('data-name') || "未選擇";
             let details = `【RENE NAIL 報價試算】\n款式：${selectedBaseName}\n卸甲：${removalText}`;
             if(document.getElementById('extra-color').checked) details += `\n+ 指定色系`;
             if(document.getElementById('big-diamond').checked) details += `\n+ 卸大鑽`;
@@ -180,7 +201,7 @@
                 if(addonCounts[item.id] > 0) details += `\n+ ${item.name} x${addonCounts[item.id]}指`;
             });
             details += `\n------------------\n總計預估：$${total}\n*實際金額依現場溝通為準`;
-            navigator.clipboard.writeText(details).then(() => alert('報價明細已複製，快貼給美甲師吧！'));
+            navigator.clipboard.writeText(details).then(() => alert('報價明細已複製！'));
         }
     </script>
 </body>
