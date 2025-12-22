@@ -12,29 +12,18 @@
         .toggle-btn { flex: 1; padding: 14px 8px; border-radius: 12px; text-align: center; transition: all 0.3s; cursor: pointer; font-size: 12px; background: #36393e; color: #999; border: 1px solid transparent; }
         .toggle-btn.active { background: #ffffff; color: #1a1c1e; font-weight: bold; }
         .counter-group { background: #36393e; border-radius: 10px; display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
-        .counter-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+        .counter-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; cursor: pointer; }
         select { background: #36393e; border: 1px solid #4a4d52; border-radius: 12px; padding: 12px; width: 100%; color: #fff; outline: none; appearance: none; }
-        select:disabled { opacity: 0.3; }
         
-        /* 懸浮總計欄 */
         .total-bar { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 15px; 
-            right: 15px; 
-            background: rgba(30, 32, 35, 0.95); 
-            padding: 16px 24px; 
-            backdrop-filter: blur(20px); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            z-index: 100; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: fixed; bottom: 20px; left: 15px; right: 15px; 
+            background: rgba(30, 32, 35, 0.95); padding: 16px 24px; 
+            backdrop-filter: blur(20px); display: flex; justify-content: space-between; 
+            align-items: center; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .copy-btn { background: #ffffff; color: #1a1c1e; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: bold; }
-        .quick-btn { background: #4a4d52; color: #ccc; font-size: 10px; padding: 4px 8px; border-radius: 6px; }
+        .quick-btn { background: #4a4d52; color: #ccc; font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
         .checkbox-disabled { opacity: 0.3; cursor: not-allowed; }
     </style>
 </head>
@@ -46,14 +35,13 @@
     <div class="dark-card">
         <p class="section-title">Base Style</p>
         <div class="grid grid-cols-2 gap-3 mb-6">
-            <div class="base-opt toggle-btn active" data-name="不指定低調" onclick="setBase(1000, this, true)">不指定低調 $1000</div>
+            <div class="base-opt toggle-btn" data-name="不指定低調" onclick="setBase(1000, this, true)">不指定低調 $1000</div>
             <div class="base-opt toggle-btn" data-name="不指定華麗" onclick="setBase(1300, this, true)">不指定華麗 $1300</div>
             <div class="base-opt toggle-btn" data-name="半指定款式" onclick="setBase(1200, this, false)">半指定款式 $1200-1400 <br> 任選店內貼紙飾品</div>
             <div class="base-opt toggle-btn" data-name="來圖/設計" onclick="setBase(1000, this, false)">來圖/設計 $1000起 <br> 依複雜程度計價</div>
         </div>
-        <label id="extra-color-label" class="flex items-center text-sm text-gray-400 px-2 cursor-pointer transition-opacity">
-            <input type="checkbox" id="extra-color" onchange="calculate()" class="mr-3 w-5 h-5"> 
-            指定色系 +$100
+        <label id="extra-color-label" class="flex items-center text-sm text-gray-400 px-2 cursor-pointer">
+            <input type="checkbox" id="extra-color" onchange="calculate()" class="mr-3 w-5 h-5"> 指定色系 +$100
         </label>
     </div>
 
@@ -90,7 +78,7 @@
     <div class="total-bar">
         <div>
             <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total</p>
-            <p class="text-3xl font-bold text-white">$<span id="total-price">1000</span></p>
+            <p class="text-3xl font-bold text-white">$<span id="total-price">0</span></p>
         </div>
         <button class="copy-btn active:scale-95 transition-transform" onclick="copyResult()">複製報價</button>
     </div>
@@ -104,8 +92,8 @@
             { id: 'fix', name: '鷹勾/飛甲校正', price: 50, emoji: '🛠️' }
         ];
 
-        let basePrice = 1000;
-        let selectedBaseName = "不指定低調";
+        let basePrice = 0;
+        let selectedBaseName = "未選擇";
         let addonCounts = {};
 
         const listDiv = document.getElementById('addon-list');
@@ -130,37 +118,30 @@
         });
 
         function setBase(price, el, canExtra) {
-            // 如果點擊的是已經選中的，則取消選取
             if (el.classList.contains('active')) {
                 el.classList.remove('active');
                 basePrice = 0;
                 selectedBaseName = "未選擇";
             } else {
-                // 否則正常選取
                 document.querySelectorAll('.base-opt').forEach(btn => btn.classList.remove('active'));
                 el.classList.add('active');
                 basePrice = price;
                 selectedBaseName = el.getAttribute('data-name');
+                
+                // 核心邏輯：選了款式，飾品就歸 0
+                addonCounts['decor'] = 0;
+                const decorCountLabel = document.getElementById('cnt-decor');
+                if(decorCountLabel) decorCountLabel.innerText = 0;
             }
 
-            const removalSelect = document.getElementById('removal');
-            const pureOpts = document.querySelectorAll('.pure-removal');
-            
-            // 處理純卸甲選項的邏輯
-            if(basePrice === 0) {
-                pureOpts.forEach(opt => opt.disabled = false);
-            } else {
-                if(removalSelect.value === "400" || removalSelect.value === "500") removalSelect.value = "0";
-                pureOpts.forEach(opt => opt.disabled = true);
-            }
-
+            // 更新指定色系可用狀態
             const extraCheck = document.getElementById('extra-color');
             const extraLabel = document.getElementById('extra-color-label');
             if (!canExtra || basePrice === 0) {
                 extraCheck.checked = false; extraCheck.disabled = true;
-                extraLabel.classList.add('checkbox-disabled');
+                extraLabel.style.opacity = "0.3";
             } else {
-                extraCheck.disabled = false; extraLabel.classList.remove('checkbox-disabled');
+                extraCheck.disabled = false; extraLabel.style.opacity = "1";
             }
             calculate();
         }
@@ -181,4 +162,26 @@
             let total = basePrice;
             if (document.getElementById('extra-color').checked) total += 100;
             total += parseInt(document.getElementById('removal').value || 0);
-            if
+            if (document.getElementById('big-diamond').checked) total += 100;
+            if (document.getElementById('extra-thick').checked) total += 200;
+            addonsConfig.forEach(item => { total += addonCounts[item.id] * item.price; });
+            document.getElementById('total-price').innerText = total;
+        }
+
+        function copyResult() {
+            const total = document.getElementById('total-price').innerText;
+            const removalSelect = document.getElementById('removal');
+            const removalText = removalSelect.options[removalSelect.selectedIndex].getAttribute('data-name') || "未選擇";
+            let details = `【RENE NAIL 報價試算】\n款式：${selectedBaseName}\n卸甲：${removalText}`;
+            if(document.getElementById('extra-color').checked) details += `\n+ 指定色系`;
+            if(document.getElementById('big-diamond').checked) details += `\n+ 卸大鑽`;
+            if(document.getElementById('extra-thick').checked) details += `\n+ 全手加厚/超長甲`;
+            addonsConfig.forEach(item => {
+                if(addonCounts[item.id] > 0) details += `\n+ ${item.name} x${addonCounts[item.id]}指`;
+            });
+            details += `\n------------------\n總計預估：$${total}\n*實際金額依現場溝通為準`;
+            navigator.clipboard.writeText(details).then(() => alert('報價明細已複製，快貼給美甲師吧！'));
+        }
+    </script>
+</body>
+</html>
